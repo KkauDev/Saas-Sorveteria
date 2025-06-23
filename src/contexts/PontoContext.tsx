@@ -1,4 +1,3 @@
-// src/contexts/PontoContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { db } from "../services/firebase";
 import {
@@ -8,6 +7,9 @@ import {
   Timestamp,
   query,
   orderBy,
+  doc,
+  deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 
 interface Ponto {
@@ -20,9 +22,13 @@ interface Ponto {
   createdAt: Date;
 }
 
+type NovoPonto = Omit<Ponto, "id" | "createdAt">;
+
 interface PontoContextType {
   pontos: Ponto[];
-  adicionarPonto: (ponto: Omit<Ponto, "id" | "createdAt">) => Promise<void>;
+  adicionarPonto: (ponto: NovoPonto) => Promise<void>;
+  excluirPonto: (id: string) => Promise<void>;
+  atualizarPonto: (id: string, pontoAtualizado: NovoPonto) => Promise<void>;
 }
 
 const PontoContext = createContext<PontoContextType | undefined>(undefined);
@@ -33,7 +39,9 @@ export const usePonto = () => {
   return context;
 };
 
-export const PontoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const PontoProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [pontos, setPontos] = useState<Ponto[]>([]);
 
   useEffect(() => {
@@ -53,22 +61,34 @@ export const PontoProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       setPontos(data);
     });
+
     return () => unsubscribe();
   }, []);
 
-  const adicionarPonto = async (ponto: Omit<Ponto, "id" | "createdAt">) => {
+  const adicionarPonto = async (ponto: NovoPonto) => {
     await addDoc(collection(db, "pontos"), {
       ...ponto,
       createdAt: Timestamp.now(),
     });
   };
 
-  
+  const excluirPonto = async (id: string) => {
+    const ref = doc(db, "pontos", id);
+    await deleteDoc(ref);
+  };
+
+  const atualizarPonto = async (id: string, pontoAtualizado: NovoPonto) => {
+    const ref = doc(db, "pontos", id);
+    await updateDoc(ref, {
+      ...pontoAtualizado,
+    });
+  };
 
   return (
-    <PontoContext.Provider value={{ pontos, adicionarPonto }}>
+    <PontoContext.Provider
+      value={{ pontos, adicionarPonto, excluirPonto, atualizarPonto }}
+    >
       {children}
     </PontoContext.Provider>
   );
 };
-

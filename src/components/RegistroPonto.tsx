@@ -4,9 +4,9 @@ import { usePonto } from "../contexts/PontoContext";
 
 const Container = styled.div`
   max-width: 700px;
-  margin: 0 auto;
+  margin: 2rem auto;
   padding: 20px;
-  background: #ffffff;
+  background: #fff;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.1);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -75,6 +75,7 @@ const SearchInput = styled(Input)`
 
 const ListContainer = styled.div`
   margin-top: 30px;
+  overflow-x: auto;
 `;
 
 const ListTitle = styled.h3`
@@ -87,6 +88,11 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   box-shadow: 0 0 8px rgb(0 0 0 / 0.05);
+  min-width: 600px;
+
+  @media (max-width: 600px) {
+    min-width: 100%;
+  }
 `;
 
 const Th = styled.th`
@@ -95,11 +101,13 @@ const Th = styled.th`
   background-color: #2563eb;
   color: white;
   font-weight: 600;
+  white-space: nowrap;
 `;
 
 const Td = styled.td`
   padding: 12px 15px;
   border-bottom: 1px solid #eee;
+  white-space: nowrap;
 `;
 
 const NoRecords = styled.p`
@@ -108,13 +116,42 @@ const NoRecords = styled.p`
   margin-top: 20px;
 `;
 
+const ActionButton = styled.button`
+  margin-right: 8px;
+  padding: 6px 10px;
+  background-color: #2563eb;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:last-child {
+    background-color: #dc2626;
+  }
+
+  &:hover {
+    filter: brightness(0.9);
+  }
+`;
+
 const RegistroPonto: React.FC = () => {
-  const { adicionarPonto, pontos } = usePonto();
+  const { adicionarPonto, pontos, excluirPonto, atualizarPonto } = usePonto();
+
   const [nome, setNome] = useState("");
   const [data, setData] = useState("");
   const [entrada, setEntrada] = useState("");
   const [saida, setSaida] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+
+  const limparCampos = () => {
+    setNome("");
+    setData("");
+    setEntrada("");
+    setSaida("");
+    setEditId(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,14 +159,50 @@ const RegistroPonto: React.FC = () => {
       alert("Preencha todos os campos.");
       return;
     }
-    await adicionarPonto({ funcionarioId: nome, nome, data, entrada, saida });
-    setNome("");
-    setData("");
-    setEntrada("");
-    setSaida("");
+
+    const novoRegistro = {
+      funcionarioId: nome + data,
+      nome,
+      data,
+      entrada,
+      saida,
+    };
+
+    try {
+      if (editId) {
+        await atualizarPonto(editId, novoRegistro);
+      } else {
+        await adicionarPonto(novoRegistro);
+      }
+      limparCampos();
+    } catch (error) {
+      alert("Erro ao salvar registro");
+      console.error(error);
+    }
   };
 
-  // Filtra os registros pelo nome do funcionário (case insensitive)
+  const iniciarEdicao = (id: string) => {
+    const ponto = pontos.find((p) => p.id === id);
+    if (ponto) {
+      setNome(ponto.nome);
+      setData(ponto.data);
+      setEntrada(ponto.entrada);
+      setSaida(ponto.saida);
+      setEditId(id);
+    }
+  };
+
+  const handleExcluir = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este registro?")) {
+      try {
+        await excluirPonto(id);
+      } catch (error) {
+        alert("Erro ao excluir registro");
+        console.error(error);
+      }
+    }
+  };
+
   const filteredPontos = pontos.filter((p) =>
     p.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -167,7 +240,9 @@ const RegistroPonto: React.FC = () => {
           value={saida}
           onChange={(e) => setSaida(e.target.value)}
         />
-        <Button type="submit">Registrar Ponto</Button>
+        <Button type="submit">
+          {editId ? "Atualizar Registro" : "Registrar Ponto"}
+        </Button>
       </Form>
 
       <ListContainer>
@@ -182,15 +257,24 @@ const RegistroPonto: React.FC = () => {
                 <Th>Data</Th>
                 <Th>Entrada</Th>
                 <Th>Saída</Th>
+                <Th>Ações</Th>
               </tr>
             </thead>
             <tbody>
-              {filteredPontos.map((ponto, i) => (
-                <tr key={`${ponto.funcionarioId}-${i}`}>
+              {filteredPontos.map((ponto) => (
+                <tr key={ponto.id}>
                   <Td>{ponto.nome}</Td>
                   <Td>{ponto.data}</Td>
                   <Td>{ponto.entrada}</Td>
                   <Td>{ponto.saida}</Td>
+                  <Td>
+                    <ActionButton onClick={() => iniciarEdicao(ponto.id)}>
+                      Editar
+                    </ActionButton>
+                    <ActionButton onClick={() => handleExcluir(ponto.id)}>
+                      Excluir
+                    </ActionButton>
+                  </Td>
                 </tr>
               ))}
             </tbody>
