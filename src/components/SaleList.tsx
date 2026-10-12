@@ -6,6 +6,13 @@ const Container = styled.div`
   max-width: 900px;
   margin: 2rem auto;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 0 1rem;
+  box-sizing: border-box;
 `;
 
 const Header = styled.div`
@@ -14,6 +21,8 @@ const Header = styled.div`
   gap: 1rem;
   margin-bottom: 1rem;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 `;
 
 const Input = styled.input`
@@ -46,6 +55,8 @@ const Button = styled.button<{ variant?: "add" | "edit" | "delete" }>`
   cursor: pointer;
   font-weight: 600;
   transition: background-color 0.3s ease;
+  min-width: 80px;
+  text-align: center;
 
   &:hover {
     background-color: ${(p) =>
@@ -65,6 +76,10 @@ const DaySection = styled.div`
   border: 1px solid #ddd;
   border-radius: 10px;
   background: #f9fafb;
+
+  width: 100%;
+  max-width: 900px;
+  box-sizing: border-box;
 `;
 
 const DayHeader = styled.div`
@@ -88,6 +103,11 @@ const TotalLabel = styled.div`
   font-size: 1.1rem;
 `;
 
+const TableWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+`;
+
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -109,8 +129,14 @@ const Td = styled.td`
   white-space: nowrap;
 `;
 
+const ActionsWrapper = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+`;
+
 const ActionButton = styled.button`
-  margin-right: 8px;
   padding: 5px 10px;
   background-color: #2563eb;
   border: none;
@@ -118,6 +144,8 @@ const ActionButton = styled.button`
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
+  min-width: 70px;
+  text-align: center;
 
   &:last-child {
     background-color: #ef4444;
@@ -173,7 +201,6 @@ const SalesByDay: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
-  // Atualiza estado quando "sales" mudar (vindo do contexto)
   React.useEffect(() => {
     setSalesByDay(groupSalesByDay());
   }, [sales]);
@@ -182,7 +209,6 @@ const SalesByDay: React.FC = () => {
     group.day.includes(searchDay)
   );
 
-  // Edit inline
   const startEditing = (sale: Sale) => {
     setEditingId(sale.id);
     setEditValue(sale.value.toString());
@@ -202,10 +228,8 @@ const SalesByDay: React.FC = () => {
     }
   };
 
-  // Adiciona novo dia (hoje com vendas vazias)
   const adicionarDia = () => {
     const hoje = new Date().toISOString().slice(0, 10);
-    // Se já existir, só foca no input do filtro
     if (salesByDay.find((g) => g.day === hoje)) {
       alert("Já existe registro para o dia de hoje.");
       setSearchDay(hoje);
@@ -215,7 +239,6 @@ const SalesByDay: React.FC = () => {
     setSearchDay(hoje);
   };
 
-  // Formatar data para exibir corretamente localmente
   const formatDay = (day: string) => {
     const [year, month, dayOfMonth] = day.split("-");
     const d = new Date(Number(year), Number(month) - 1, Number(dayOfMonth));
@@ -257,76 +280,83 @@ const SalesByDay: React.FC = () => {
             )}
 
             {sales.length > 0 && (
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>#</Th>
-                    <Th>Valor (R$)</Th>
-                    <Th>Data e Hora</Th>
-                    <Th>Ações</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sales
-                    .sort(
-                      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
-                    )
-                    .map((sale, i) => (
-                      <tr key={sale.id}>
-                        <Td>{i + 1}</Td>
+              <TableWrapper>
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>#</Th>
+                      <Th>Valor (R$)</Th>
+                      <Th>Data e Hora</Th>
+                      <Th>Ações</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sales
+                      .sort(
+                        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+                      )
+                      .map((sale, i) => (
+                        <tr key={sale.id}>
+                          <Td>{i + 1}</Td>
 
-                        <Td>
-                          {editingId === sale.id ? (
-                            <EditInput
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              autoFocus
-                            />
-                          ) : (
-                            sale.value.toFixed(2)
-                          )}
-                        </Td>
+                          <Td>
+                            {editingId === sale.id ? (
+                              <EditInput
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                autoFocus
+                              />
+                            ) : (
+                              sale.value.toFixed(2)
+                            )}
+                          </Td>
 
-                        <Td>{sale.createdAt.toLocaleTimeString()}</Td>
+                          <Td>{sale.createdAt.toLocaleTimeString()}</Td>
 
-                        <Td>
-                          {editingId === sale.id ? (
-                            <>
-                              <Button onClick={saveEditing} variant="edit">
-                                Salvar
-                              </Button>
-                              <Button onClick={cancelEditing} variant="delete">
-                                Cancelar
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <ActionButton onClick={() => startEditing(sale)}>
-                                Editar
-                              </ActionButton>
-                              <ActionButton
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      "Tem certeza que deseja excluir esta venda?"
-                                    )
-                                  ) {
-                                    deleteSale(sale.id);
-                                  }
-                                }}
-                              >
-                                Excluir
-                              </ActionButton>
-                            </>
-                          )}
-                        </Td>
-                      </tr>
-                    ))}
-                </tbody>
-              </Table>
+                          <Td>
+                            {editingId === sale.id ? (
+                              <ActionsWrapper>
+                                <Button onClick={saveEditing} variant="edit">
+                                  Salvar
+                                </Button>
+                                <Button
+                                  onClick={cancelEditing}
+                                  variant="delete"
+                                >
+                                  Cancelar
+                                </Button>
+                              </ActionsWrapper>
+                            ) : (
+                              <ActionsWrapper>
+                                <ActionButton
+                                  onClick={() => startEditing(sale)}
+                                >
+                                  Editar
+                                </ActionButton>
+                                <ActionButton
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        "Tem certeza que deseja excluir esta venda?"
+                                      )
+                                    ) {
+                                      deleteSale(sale.id);
+                                    }
+                                  }}
+                                >
+                                  Excluir
+                                </ActionButton>
+                              </ActionsWrapper>
+                            )}
+                          </Td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </Table>
+              </TableWrapper>
             )}
           </DaySection>
         );
